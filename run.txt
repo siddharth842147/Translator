@@ -1,0 +1,34 @@
+# Instructions to run the AI Translator app
+
+1. (Optional) Create and activate a virtual environment:
+   On Windows:
+       python -m venv venv
+       venv\Scripts\activate
+
+   On macOS/Linux:
+       python3 -m venv venv
+       source venv/bin/activate
+
+2. Install required packages from requirements.txt:
+       pip install -r requirements.txt
+
+3. Run the Streamlit app:
+       streamlit run translation_app.py
+
+4. The app will open in your default web browser. If not, copy the local URL shown in the terminal and open it manually.
+
+5. To stop the app, press CTRL+C in the terminal.
+
+---
+
+Optional notes:
+- For speech input to work, ensure your microphone is set up correctly.
+- On Linux/macOS, you may need to install portaudio dependencies for PyAudio:
+   Linux (Debian/Ubuntu):
+       sudo apt-get install portaudio19-dev python3-pyaudio
+   macOS (with Homebrew):
+       brew install portaudio
+
+- If you face issues with PyAudio installation, you can search for wheels or alternative installation methods.
+
+Enjoy your AI Translator app!
