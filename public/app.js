@@ -174,6 +174,7 @@ function showToast(message, isError = false) {
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let isListening = false;
+let speechSessionInitialText = "";
 
 if (SpeechRecognition) {
   recognition = new SpeechRecognition();
@@ -182,6 +183,7 @@ if (SpeechRecognition) {
 
   recognition.onstart = () => {
     isListening = true;
+    speechSessionInitialText = inputText.value.trim();
     speechBtnText.textContent = "Listening... Speak now";
     speechInputBtn.classList.add("btn-listening");
     speechStatus.textContent = "🎤 Listening for your voice...";
@@ -189,14 +191,21 @@ if (SpeechRecognition) {
   };
 
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    if (inputText.value.trim()) {
-      inputText.value += " " + transcript;
+    let sessionTranscript = "";
+    for (let i = 0; i < event.results.length; i++) {
+      if (event.results[i] && event.results[i][0]) {
+        sessionTranscript += event.results[i][0].transcript;
+      }
+    }
+    sessionTranscript = sessionTranscript.trim();
+
+    if (speechSessionInitialText) {
+      inputText.value = `${speechSessionInitialText} ${sessionTranscript}`;
     } else {
-      inputText.value = transcript;
+      inputText.value = sessionTranscript;
     }
     inputText.dispatchEvent(new Event("input"));
-    speechStatus.textContent = `Captured: "${transcript}"`;
+    speechStatus.textContent = `Captured: "${sessionTranscript}"`;
   };
 
   recognition.onerror = (event) => {
