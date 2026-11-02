@@ -11,6 +11,11 @@
   to = "/.netlify/functions/translate"
   status = 200
 
+[[redirects]]
+  from = "/api/tts"
+  to = "/.netlify/functions/tts"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

@@ -359,7 +359,7 @@ function playWithGoogleTTS(text, langCode) {
   const iconSpan = playAudioBtn.querySelector(".btn-icon");
   if (iconSpan) iconSpan.textContent = "⏹";
 
-  function playNextChunk() {
+  async function playNextChunk() {
     if (!isAudioPlaying) return;
     if (chunkIdx >= chunks.length) {
       stopAllAudio();
@@ -367,27 +367,38 @@ function playWithGoogleTTS(text, langCode) {
     }
 
     const chunk = chunks[chunkIdx++];
-    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
-      chunk
-    )}&tl=${encodeURIComponent(langCode)}&client=tw-ob`;
 
-    currentAudio = new Audio(audioUrl);
+    try {
+      // Fetch audio through Netlify TTS proxy to bypass Google Referer blocking
+      const res = await fetch(
+        `/api/tts?text=${encodeURIComponent(chunk)}&lang=${encodeURIComponent(langCode)}`
+      );
 
-    currentAudio.onended = () => {
-      playNextChunk();
-    };
+      if (!res.ok) {
+        throw new Error(`TTS service returned status ${res.status}`);
+      }
 
-    currentAudio.onerror = (e) => {
-      console.warn("Google TTS audio stream error, falling back to Web Speech:", e);
-      currentAudio = null;
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      currentAudio = new Audio(objectUrl);
+
+      currentAudio.onended = () => {
+        URL.revokeObjectURL(objectUrl);
+        playNextChunk();
+      };
+
+      currentAudio.onerror = (e) => {
+        URL.revokeObjectURL(objectUrl);
+        console.warn("TTS audio playback error, attempting speech synthesis fallback:", e);
+        fallbackToSpeechSynthesis(text, langCode);
+      };
+
+      await currentAudio.play();
+    } catch (err) {
+      console.warn("TTS service error, attempting speech synthesis fallback:", err);
       fallbackToSpeechSynthesis(text, langCode);
-    };
-
-    currentAudio.play().catch((err) => {
-      console.warn("Audio play error, falling back to Web Speech:", err);
-      currentAudio = null;
-      fallbackToSpeechSynthesis(text, langCode);
-    });
+    }
   }
 
   playNextChunk();
