@@ -1,0 +1,6 @@
+streamlit==1.24.1
+deep-translator==1.8.3
+SpeechRecognition==3.8.1
+pyttsx3==2.90
+gtts==2.3.1
+PyAudio==0.2.13

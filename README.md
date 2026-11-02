@@ -45,7 +45,7 @@ source venv/bin/activate
 ### 3️⃣ Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-streamlit.txt
 ```
 
 ### 4️⃣ Run the App (Streamlit)
@@ -58,7 +58,7 @@ streamlit run translation_app.py
 
 ## 📋 Requirements
 
-Add this to requirements.txt:
+For local Streamlit development (`requirements-streamlit.txt`):
 
 ```txt
 streamlit
@@ -66,6 +66,7 @@ deep-translator
 SpeechRecognition
 gTTS
 pyttsx3
+PyAudio
 ```
 
 ---
