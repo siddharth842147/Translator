@@ -132,7 +132,6 @@ const toastMessage = document.getElementById("toastMessage");
 
 // Populate Language Dropdowns
 function initLanguages() {
-  // Source languages (includes auto detect)
   for (const [code, name] of Object.entries(LANGUAGES)) {
     const opt = document.createElement("option");
     opt.value = code;
@@ -141,7 +140,6 @@ function initLanguages() {
     sourceLangSelect.appendChild(opt);
   }
 
-  // Target languages (excludes auto detect)
   for (const [code, name] of Object.entries(LANGUAGES)) {
     if (code === "auto") continue;
     const opt = document.createElement("option");
@@ -253,8 +251,25 @@ async function handleTranslation() {
     let resultText = "";
     let detectedSource = null;
 
-    // 1. Try Netlify Serverless Function
+    // 1. Direct browser API request (Fastest, zero server cold starts, handles 100+ languages)
     try {
+      const directUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(
+        sourceLang
+      )}&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(directUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data[0])) {
+          resultText = data[0].map((s) => (s && s[0] ? s[0] : "")).join("");
+        }
+        detectedSource = data[2];
+      }
+    } catch (directErr) {
+      console.warn("Direct translation unavailable, attempting Netlify proxy:", directErr);
+    }
+
+    // 2. Netlify Serverless Function Fallback
+    if (!resultText) {
       const response = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -266,20 +281,8 @@ async function handleTranslation() {
         resultText = data.translation;
         detectedSource = data.detectedSource;
       } else {
-        throw new Error(`Netlify function returned status ${response.status}`);
+        throw new Error(`Translation service returned status ${response.status}`);
       }
-    } catch (funcError) {
-      console.warn("Netlify function unavailable, attempting direct fallback:", funcError);
-      // 2. Direct client-side fallback
-      const directUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(
-        sourceLang
-      )}&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
-      const res = await fetch(directUrl);
-      const data = await res.json();
-      if (Array.isArray(data[0])) {
-        resultText = data[0].map((s) => (s && s[0] ? s[0] : "")).join("");
-      }
-      detectedSource = data[2];
     }
 
     if (resultText) {
@@ -309,40 +312,148 @@ async function handleTranslation() {
 
 translateBtn.addEventListener("click", handleTranslation);
 
-// Text-to-Speech (Web Speech Synthesis)
+// Text-to-Speech Audio Player (Google TTS Stream + Web Speech API Fallback)
+let currentAudio = null;
+let currentUtterance = null;
+let isAudioPlaying = false;
+
+function splitTextForAudio(text, maxLength = 180) {
+  if (text.length <= maxLength) return [text];
+  const words = text.split(/\s+/);
+  const chunks = [];
+  let currentChunk = "";
+
+  for (const word of words) {
+    if ((currentChunk + " " + word).trim().length <= maxLength) {
+      currentChunk = (currentChunk + " " + word).trim();
+    } else {
+      if (currentChunk) chunks.push(currentChunk);
+      currentChunk = word;
+    }
+  }
+  if (currentChunk) chunks.push(currentChunk);
+  return chunks.length > 0 ? chunks : [text];
+}
+
+function stopAllAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    currentUtterance = null;
+  }
+  isAudioPlaying = false;
+  playBtnText.textContent = "Play Translation";
+  const iconSpan = playAudioBtn.querySelector(".btn-icon");
+  if (iconSpan) iconSpan.textContent = "🔊";
+}
+
+function playWithGoogleTTS(text, langCode) {
+  const chunks = splitTextForAudio(text, 180);
+  let chunkIdx = 0;
+  isAudioPlaying = true;
+  playBtnText.textContent = "Stop Audio";
+  const iconSpan = playAudioBtn.querySelector(".btn-icon");
+  if (iconSpan) iconSpan.textContent = "⏹";
+
+  function playNextChunk() {
+    if (!isAudioPlaying) return;
+    if (chunkIdx >= chunks.length) {
+      stopAllAudio();
+      return;
+    }
+
+    const chunk = chunks[chunkIdx++];
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
+      chunk
+    )}&tl=${encodeURIComponent(langCode)}&client=tw-ob`;
+
+    currentAudio = new Audio(audioUrl);
+
+    currentAudio.onended = () => {
+      playNextChunk();
+    };
+
+    currentAudio.onerror = (e) => {
+      console.warn("Google TTS audio stream error, falling back to Web Speech:", e);
+      currentAudio = null;
+      fallbackToSpeechSynthesis(text, langCode);
+    };
+
+    currentAudio.play().catch((err) => {
+      console.warn("Audio play error, falling back to Web Speech:", err);
+      currentAudio = null;
+      fallbackToSpeechSynthesis(text, langCode);
+    });
+  }
+
+  playNextChunk();
+}
+
+function fallbackToSpeechSynthesis(text, langCode) {
+  if (!("speechSynthesis" in window)) {
+    showToast("Text-to-speech not supported on this browser.", true);
+    stopAllAudio();
+    return;
+  }
+
+  try {
+    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    currentUtterance = utterance; // Prevents Chrome garbage-collection bug
+    utterance.lang = langCode;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+      const match = voices.find(
+        (v) => v.lang === langCode || v.lang.startsWith(langCode.split("-")[0])
+      );
+      if (match) utterance.voice = match;
+    }
+
+    utterance.onstart = () => {
+      isAudioPlaying = true;
+      playBtnText.textContent = "Stop Audio";
+      const iconSpan = playAudioBtn.querySelector(".btn-icon");
+      if (iconSpan) iconSpan.textContent = "⏹";
+    };
+
+    utterance.onend = () => {
+      stopAllAudio();
+    };
+
+    utterance.onerror = (e) => {
+      stopAllAudio();
+      if (e.error !== "interrupted") {
+        console.warn("Speech synthesis error:", e);
+      }
+    };
+
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.warn("Web speech fallback error:", err);
+    stopAllAudio();
+  }
+}
+
 playAudioBtn.addEventListener("click", () => {
   const text = outputText.value.trim();
   if (!text) return;
 
-  if (!("speechSynthesis" in window)) {
-    showToast("Text-to-speech is not supported by your browser.", true);
+  if (isAudioPlaying) {
+    stopAllAudio();
     return;
   }
 
-  if (window.speechSynthesis.speaking) {
-    window.speechSynthesis.cancel();
-    playBtnText.textContent = "Play Translation";
-    return;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
   const targetCode = targetLangSelect.value;
-  utterance.lang = targetCode;
-
-  utterance.onstart = () => {
-    playBtnText.textContent = "Playing...";
-  };
-
-  utterance.onend = () => {
-    playBtnText.textContent = "Play Translation";
-  };
-
-  utterance.onerror = (e) => {
-    playBtnText.textContent = "Play Translation";
-    console.warn("Speech synthesis error:", e);
-  };
-
-  window.speechSynthesis.speak(utterance);
+  playWithGoogleTTS(text, targetCode);
 });
 
 // Copy to Clipboard
@@ -375,7 +486,6 @@ swapLangsBtn.addEventListener("click", () => {
   sourceLangSelect.value = currentTarget;
   targetLangSelect.value = currentSource;
 
-  // Also swap text if both exist
   const inVal = inputText.value;
   const outVal = outputText.value;
   if (outVal) {
@@ -400,11 +510,8 @@ clearAllBtn.addEventListener("click", () => {
   playAudioBtn.disabled = true;
   copyBtn.disabled = true;
   translationState.textContent = "Ready to translate";
-  if (window.speechSynthesis && window.speechSynthesis.speaking) {
-    window.speechSynthesis.cancel();
-  }
+  stopAllAudio();
 });
 
 // Initialize on Load
 initLanguages();
-
