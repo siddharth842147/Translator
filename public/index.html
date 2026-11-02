@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Translator 🌍 | Instant Translation with Speech</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">🌍</span>
+        <div>
+          <h1>AI Translator</h1>
+          <p class="tagline">Translate text instantly with real-time speech support</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-online">● Ready</span>
+        <button id="clearAllBtn" class="btn btn-ghost" title="Reset all fields">🗑 Clear All</button>
+      </div>
+    </header>
+
+    <main class="translator-grid">
+      <!-- Input Panel -->
+      <section class="card panel panel-input">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-icon">📝</span>
+            <h2>Input</h2>
+          </div>
+          <div class="lang-select-wrapper">
+            <label for="sourceLang" class="sr-only">Source Language</label>
+            <select id="sourceLang" class="lang-select"></select>
+          </div>
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea
+            id="inputText"
+            placeholder="Type your text here or click 'Speech Input' below to speak..."
+            rows="7"
+          ></textarea>
+          <div class="textarea-footer">
+            <span id="charCount" class="char-count">0 characters</span>
+            <span id="detectedLangBadge" class="detected-badge" style="display: none;"></span>
+          </div>
+        </div>
+
+        <div class="panel-actions">
+          <button id="speechInputBtn" class="btn btn-secondary">
+            <span class="btn-icon">🎤</span>
+            <span id="speechBtnText">Speech Input</span>
+          </button>
+          <button id="clearInputBtn" class="btn btn-outline" title="Clear input text">Clear</button>
+        </div>
+
+        <div id="speechStatus" class="status-msg" style="display: none;"></div>
+      </section>
+
+      <!-- Language Swap Controls (Desktop Center / Mobile Stack) -->
+      <div class="swap-divider">
+        <button id="swapLangsBtn" class="btn btn-icon-round" title="Swap languages">
+          ⇄
+        </button>
+      </div>
+
+      <!-- Output Panel -->
+      <section class="card panel panel-output">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="panel-icon">🎯</span>
+            <h2>Translation</h2>
+          </div>
+          <div class="lang-select-wrapper">
+            <label for="targetLang" class="sr-only">Target Language</label>
+            <select id="targetLang" class="lang-select"></select>
+          </div>
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea
+            id="outputText"
+            placeholder="Translation will appear here..."
+            rows="7"
+            readonly
+          ></textarea>
+          <div class="textarea-footer">
+            <span id="translationState" class="state-hint">Ready to translate</span>
+          </div>
+        </div>
+
+        <div class="panel-actions output-actions">
+          <button id="translateBtn" class="btn btn-primary">
+            <span class="btn-icon">🔄</span>
+            <span>Translate</span>
+          </button>
+          <button id="playAudioBtn" class="btn btn-secondary" disabled>
+            <span class="btn-icon">🔊</span>
+            <span id="playBtnText">Play Translation</span>
+          </button>
+          <button id="copyBtn" class="btn btn-secondary" disabled>
+            <span class="btn-icon">📋</span>
+            <span id="copyBtnText">Copy</span>
+          </button>
+        </div>
+
+        <div id="toastMessage" class="toast-message" style="display: none;"></div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Powered by Google Translate & Web Speech API • Ready for Netlify Deployment</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

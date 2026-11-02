@@ -25,33 +25,34 @@ AI Translator is a *Streamlit web app* that provides instant text translation wi
 
 ### 1️⃣ Clone the Repository
 
-bash
-git clone https://github.com/your-username/ai-translator.git
-cd ai-translator
-
+```bash
+git clone https://github.com/siddharth842147/Translator.git
+cd Translator
+```
 
 ### 2️⃣ Create & Activate Virtual Environment
 
-bash
-python -m venv venv
-# Activate it:
+```bash
 # Windows
+python -m venv venv
 venv\Scripts\activate
-# Mac/Linux
-source venv/bin/activate
 
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
 
 ### 3️⃣ Install Dependencies
 
-bash
+```bash
 pip install -r requirements.txt
+```
 
+### 4️⃣ Run the App (Streamlit)
 
-### 4️⃣ Run the App
-
-bash
+```bash
 streamlit run translation_app.py
-
+```
 
 ---
 
@@ -59,13 +60,13 @@ streamlit run translation_app.py
 
 Add this to requirements.txt:
 
-txt
+```txt
 streamlit
 deep-translator
 SpeechRecognition
 gTTS
 pyttsx3
-
+```
 
 ---
 
@@ -101,8 +102,28 @@ Use the *🗑 Clear All* button to reset session state.
 
 ---
 
+## 🌐 Deploy to Netlify
+
+This project is fully configured for zero-config Netlify deployment:
+
+### Fast Deploy (GitHub):
+1. Push this repository to GitHub.
+2. Sign in to [Netlify](https://app.netlify.com/).
+3. Click **Add new site** > **Import an existing project** > **GitHub**.
+4. Select your repository. Netlify will auto-detect settings from `netlify.toml`:
+   - **Publish directory:** `public`
+   - **Functions directory:** `netlify/functions`
+5. Click **Deploy Site**.
+
+### Deploy via Netlify CLI:
+```bash
+npm install -g netlify-cli
+netlify login
+netlify deploy --prod
+```
+
+---
+
 ## 📜 License
 
 This project is licensed under the MIT License.
-
----
